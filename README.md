@@ -1,44 +1,86 @@
-# Website
+# Kushal Krishnappa — Blog
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+A standalone [Docusaurus](https://docusaurus.io/) blog site. After each build it
+generates `build/posts.json`, a manifest consumed by the
+[portfolio site](https://github.com/kushalkrishnappa/portfolio) to render blog
+cards. The deployed permalink for every post is
+`https://kushalkrishnappa.github.io/blog/<slug>`, which is identical to the
+`url` field written into the manifest.
 
-## Installation
+---
 
-```bash
-yarn
-```
-
-## Local Development
-
-```bash
-yarn start
-```
-
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
-
-## Build
+## Local development
 
 ```bash
-yarn build
+npm install          # install dependencies
+npm start            # start dev server at http://localhost:3000/blog/
+npm run build        # production build + generate build/posts.json
+npm test             # run manifest-generator unit tests
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+---
 
-## Deployment
+## Authoring a post
 
-Using SSH:
+### File location
 
-```bash
-USE_SSH=true yarn deploy
+Two formats are supported:
+
+- **Flat file:** `blog/YYYY-MM-DD-slug-name.md`
+- **Folder format:** `blog/YYYY-MM-DD-slug-name/index.md` (use when the post
+  needs co-located assets such as images)
+
+### Required frontmatter
+
+> **Warning:** Every published post MUST have an explicit `slug` field.
+> The manifest generator (`scripts/generate-manifest.mjs`) throws an error and
+> aborts the build if `slug` is missing. This is intentional — the manifest
+> `url` is derived from `slug`, so a missing slug means a broken portfolio link.
+
+```yaml
+---
+slug: my-post-slug          # REQUIRED. Becomes the URL /blog/<slug>.
+                            # Must be unique and URL-safe (lowercase, hyphens).
+title: "My Post Title"      # REQUIRED.
+date: 2026-01-15            # Recommended. Falls back to YYYY-MM-DD filename prefix if omitted.
+description: "One sentence summary shown on the portfolio card."
+tags: [systems, infra]      # Array of tags (inline; no tags.yml needed).
+draft: true                 # Optional. Omit or set false to publish.
+                            # draft: true excludes the post from the build and manifest.
+---
 ```
 
-Not using SSH:
+### Field reference
 
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
+| Field | Required | Notes |
+|---|---|---|
+| `slug` | **YES** | URL path segment: `/blog/<slug>`. Must be unique and URL-safe. |
+| `title` | **YES** | Displayed on the page and in the manifest. |
+| `date` | Recommended | ISO date (`YYYY-MM-DD`). Derived from filename prefix if absent. |
+| `description` | No | Becomes the portfolio card summary (`summary` field in manifest). |
+| `tags` | No | Inline array — no separate `tags.yml` required. |
+| `draft` | No | `true` = excluded from build and `posts.json` manifest. |
 
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+### Truncate marker
+
+Add `<!-- truncate -->` in the body to control what appears as the excerpt on
+list pages. Everything before the marker is the excerpt; everything after is
+only on the full post page.
+
+---
+
+## Deployment / first-time setup
+
+Full deployment instructions (creating the `blog` GitHub repository, enabling
+GitHub Pages, and wiring the Netlify build-hook secret) will be documented in
+Task 4 (CI/CD setup). A brief stub:
+
+1. Create a GitHub repo named `blog` under `kushalkrishnappa`.
+2. Enable GitHub Pages (source: GitHub Actions).
+3. Add the `NETLIFY_BUILD_HOOK` repository secret for cross-site rebuild
+   triggers.
+
+---
 
 ## Security notes
 
