@@ -63,9 +63,12 @@ draft: true                 # Optional. Omit or set false to publish.
 
 ### Truncate marker
 
-Add `<!-- truncate -->` in the body to control what appears as the excerpt on
+Add `{/* truncate */}` in the body to control what appears as the excerpt on
 list pages. Everything before the marker is the excerpt; everything after is
-only on the full post page.
+only on the full post page. Note: `.md` files in this repo are compiled as MDX
+(Docusaurus v4 future flag), so the JSX comment form `{/* truncate */}` is
+required — HTML comments (`<!-- truncate -->`) are not valid MDX and will cause
+a build error.
 
 ---
 

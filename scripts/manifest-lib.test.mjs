@@ -61,3 +61,31 @@ test("buildManifest with no entries returns an empty posts array", () => {
   assert.deepEqual(m.posts, []);
   assert.equal(typeof m.generatedAt, "string");
 });
+
+test("toPost throws on a non-URL-safe slug", () => {
+  assert.throws(() => toPost({ slug: "my post", title: "T", date: "2026-01-01" }, "b", { siteUrl: SITE, baseUrl: BASE, fileName: "p.md" }));
+  assert.throws(() => toPost({ slug: "My-Post", title: "T", date: "2026-01-01" }, "b", { siteUrl: SITE, baseUrl: BASE, fileName: "p.md" }));
+});
+
+test("toPost throws when no date can be resolved", () => {
+  assert.throws(() => toPost({ slug: "x", title: "X" }, "b", { siteUrl: SITE, baseUrl: BASE, fileName: "no-date.md" }));
+});
+
+test("toPost collapses duplicate slashes when siteUrl has a trailing slash", () => {
+  const post = toPost({ slug: "x", title: "X", date: "2026-01-01" }, "b", { siteUrl: SITE + "/", baseUrl: BASE });
+  assert.equal(post.url, "https://kushalkrishnappa.github.io/blog/x");
+});
+
+test("buildManifest throws on a non-boolean draft value", () => {
+  const entries = [{ data: { slug: "a", title: "A", date: "2026-01-01", draft: "true" }, content: "b", fileName: "a.md" }];
+  assert.throws(() => buildManifest(entries, { siteUrl: SITE, baseUrl: BASE }));
+});
+
+test("buildManifest includes posts with draft:false or no draft", () => {
+  const entries = [
+    { data: { slug: "p1", title: "P1", date: "2026-01-01", draft: false }, content: "b", fileName: "p1.md" },
+    { data: { slug: "p2", title: "P2", date: "2026-02-01" }, content: "b", fileName: "p2.md" },
+  ];
+  const m = buildManifest(entries, { siteUrl: SITE, baseUrl: BASE });
+  assert.deepEqual(m.posts.map((p) => p.slug), ["p2", "p1"]);
+});
