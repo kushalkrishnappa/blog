@@ -71,14 +71,23 @@ only on the full post page.
 
 ## Deployment / first-time setup
 
-Full deployment instructions (creating the `blog` GitHub repository, enabling
-GitHub Pages, and wiring the Netlify build-hook secret) will be documented in
-Task 4 (CI/CD setup). A brief stub:
-
-1. Create a GitHub repo named `blog` under `kushalkrishnappa`.
-2. Enable GitHub Pages (source: GitHub Actions).
-3. Add the `NETLIFY_BUILD_HOOK` repository secret for cross-site rebuild
-   triggers.
+1. Create a GitHub repo named **`blog`** (must be `blog`, NOT `blogs`, so Pages
+   serves at `/blog/` — matching the portfolio's `BLOG_MANIFEST_URL`).
+2. Push this repo:
+   ```bash
+   git remote add origin git@github.com:kushalkrishnappa/blog.git && git push -u origin main
+   ```
+3. Repo Settings → Pages → Build and deployment → Source: **GitHub Actions**.
+4. Repo Settings → Secrets and variables → Actions → New repository secret:
+   `NETLIFY_BUILD_HOOK` = the build hook URL from Netlify (portfolio site →
+   Site settings → Build & deploy → Build hooks → Add build hook, targeting
+   the portfolio's production branch). Until this secret is set, the deploy
+   still succeeds and just skips the portfolio ping.
+5. The portfolio already defaults `BLOG_MANIFEST_URL` to
+   `https://kushalkrishnappa.github.io/blog/posts.json`; only set it in
+   Netlify env if overriding.
+6. Push to `main` → the Action builds + deploys the blog and pings the hook →
+   the portfolio rebuilds and shows the new post.
 
 ---
 
