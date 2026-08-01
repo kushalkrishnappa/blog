@@ -1,4 +1,4 @@
-// Reads blog/*.md(x) (flat or folder format), builds posts.json into the build output.
+// Reads blogs/*.md(x) (flat or folder format), builds posts.json into the build output.
 import { writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { buildManifest } from "./manifest-lib.mjs";
@@ -6,7 +6,7 @@ import { readEntries } from "./read-entries.mjs";
 
 // Keep these in sync with docusaurus.config.ts (url + baseUrl).
 const SITE_URL = "https://kushalkrishnappa.github.io";
-const BASE_URL = "/blog/";
+const BASE_URL = "/blogs/";
 const BLOG_DIR = "blogs";
 const OUT_FILE = join("build", "posts.json");
 

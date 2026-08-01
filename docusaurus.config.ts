@@ -16,11 +16,11 @@ const config: Config = {
 
   // GitHub Pages project site URL
   url: 'https://kushalkrishnappa.github.io',
-  baseUrl: '/blog/',
+  baseUrl: '/blogs/',
 
   // GitHub pages deployment config.
   organizationName: 'kushalkrishnappa',
-  projectName: 'blog',
+  projectName: 'blogs',
 
   onBrokenLinks: 'throw',
   markdown: {
