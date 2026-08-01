@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readingTime, toPost, buildManifest } from "./manifest-lib.mjs";
 
 const SITE = "https://kushalkrishnappa.github.io";
-const BASE = "/blog/";
+const BASE = "/blogs/";
 
 test("readingTime rounds up at ~200 wpm, min 1", () => {
   assert.equal(readingTime(""), "1 min read");
@@ -16,7 +16,7 @@ test("toPost builds an absolute permalink from slug", () => {
     "x ".repeat(200),
     { siteUrl: SITE, baseUrl: BASE },
   );
-  assert.equal(post.url, "https://kushalkrishnappa.github.io/blog/hello-world");
+  assert.equal(post.url, "https://kushalkrishnappa.github.io/blogs/hello-world");
   assert.equal(post.slug, "hello-world");
   assert.equal(post.title, "Hello");
   assert.equal(post.date, "2026-07-01");
@@ -73,7 +73,7 @@ test("toPost throws when no date can be resolved", () => {
 
 test("toPost collapses duplicate slashes when siteUrl has a trailing slash", () => {
   const post = toPost({ slug: "x", title: "X", date: "2026-01-01" }, "b", { siteUrl: SITE + "/", baseUrl: BASE });
-  assert.equal(post.url, "https://kushalkrishnappa.github.io/blog/x");
+  assert.equal(post.url, "https://kushalkrishnappa.github.io/blogs/x");
 });
 
 test("buildManifest throws on a non-boolean draft value", () => {
