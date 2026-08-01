@@ -26,9 +26,16 @@ npm test             # run manifest-generator unit tests
 
 Two formats are supported:
 
-- **Flat file:** `blog/YYYY-MM-DD-slug-name.md`
-- **Folder format:** `blog/YYYY-MM-DD-slug-name/index.md` (use when the post
+- **Flat file:** `blogs/YYYY-MM-DD-slug-name.md`
+- **Folder format:** `blogs/YYYY-MM-DD-slug-name/index.md` (use when the post
   needs co-located assets such as images)
+
+> **Note:** the content directory is `blogs/` (plural) but the deployed URL path
+> is `/blog/` (singular). These are independent: the directory name is set by
+> `path: 'blogs'` in `docusaurus.config.ts` and `BLOG_DIR` in
+> `scripts/generate-manifest.mjs`, while the URL comes from the GitHub repo name
+> via `baseUrl`. Renaming the directory requires updating both of those two
+> settings and nothing else.
 
 ### Required frontmatter
 
@@ -74,8 +81,9 @@ a build error.
 
 ## Deployment / first-time setup
 
-1. Create a GitHub repo named **`blog`** (must be `blog`, NOT `blogs`, so Pages
-   serves at `/blog/` — matching the portfolio's `BLOG_MANIFEST_URL`).
+1. Create a GitHub repo named **`blog`** (the *repo* must be `blog` — singular —
+   so Pages serves at `/blog/`, matching the portfolio's `BLOG_MANIFEST_URL`.
+   This is unrelated to the local `blogs/` content directory.)
 2. Push this repo:
    ```bash
    git remote add origin git@github.com:kushalkrishnappa/blog.git && git push -u origin main

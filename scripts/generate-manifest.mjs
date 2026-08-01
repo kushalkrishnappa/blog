@@ -7,7 +7,7 @@ import { readEntries } from "./read-entries.mjs";
 // Keep these in sync with docusaurus.config.ts (url + baseUrl).
 const SITE_URL = "https://kushalkrishnappa.github.io";
 const BASE_URL = "/blog/";
-const BLOG_DIR = "blog";
+const BLOG_DIR = "blogs";
 const OUT_FILE = join("build", "posts.json");
 
 if (!existsSync("build")) {
