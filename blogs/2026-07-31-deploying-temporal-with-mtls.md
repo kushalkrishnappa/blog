@@ -288,16 +288,29 @@ Two gotchas here mirror earlier ones: `Error 1033` means the tunnel is routed bu
 
 ## The final architecture
 
-```
-                          ┌───────────────────────── EC2 instance ─────────────────────────┐
-  Workers (anywhere) ──── mTLS/gRPC ──► :7233  nginx ──plain gRPC──► temporal (plaintext,   │
-                                        │ (verifies client cert)     internal only)          │
-                                        │                                │                    │
-                                        │                                └──► postgres         │
-                          Browser ─ SSO ─► cloudflared ──(outbound)──► temporal-ui :8080      │
-                                          (Cloudflare Access login)                            │
-                          Infisical agent ─► renews server cert ─► reloads nginx              │
-                          └──────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+  workers["Workers<br/>(anywhere)"]
+  browser["Browser"]
+  access["Cloudflare Access<br/>(SSO login)"]
+
+  subgraph ec2 ["EC2 instance"]
+    nginx["nginx :7233<br/>verifies client cert"]
+    temporal["temporal server<br/>plaintext, internal only"]
+    postgres[("postgres")]
+    ui["temporal-ui :8080"]
+    cloudflared["cloudflared"]
+    infisical["Infisical agent"]
+  end
+
+  workers -- "mTLS / gRPC" --> nginx
+  nginx -- "plain gRPC" --> temporal
+  temporal --> postgres
+  browser --> access
+  access -. "tunnel (outbound)" .-> cloudflared
+  cloudflared -- "localhost" --> ui
+  ui -- "plain gRPC" --> temporal
+  infisical -- "renews cert, reloads" --> nginx
 ```
 
 The result:
