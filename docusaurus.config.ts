@@ -6,7 +6,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Kushal Krishnappa — Writing',
-  tagline: 'Notes on systems, software, and the craft of engineering.',
+  tagline: 'Notes on systems, software and the craft of engineering.',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -43,9 +43,10 @@ const config: Config = {
       {
         docs: false,
         blog: {
+          path: 'blogs',
           routeBasePath: '/',
           blogTitle: 'Kushal Krishnappa — Writing',
-          blogDescription: 'Notes on systems, software, and the craft of engineering.',
+          blogDescription: 'Notes on systems, software and the craft of engineering.',
           showReadingTime: true,
           feedOptions: {
             type: ['rss', 'atom'],

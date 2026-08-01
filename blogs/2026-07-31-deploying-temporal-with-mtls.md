@@ -1,12 +1,12 @@
 ---
 slug: deploying-temporal-with-mtls
-title: "Deploying a Self-Hosted Temporal Cluster with mTLS, Auto-Renewing Certs, and an SSO-Protected UI"
+title: "Deploying a Self-Hosted Temporal Cluster with mTLS, Auto-Renewing Certs and an SSO-Protected UI"
 date: 2026-07-31
-description: "Standing up Temporal on a single EC2 box: workers authenticated over mutual TLS with self-renewing certs, an SSO-protected dashboard, and exactly one inbound port open."
+description: "Standing up Temporal on a single EC2 box: workers authenticated over mutual TLS with self-renewing certs, an SSO-protected dashboard and exactly one inbound port open."
 tags: [temporal, mtls, infrastructure, security, devops]
 ---
 
-This is the story of standing up a production-ish [Temporal](https://temporal.io) cluster on a single EC2 box — where the workers authenticate over mutual TLS with certificates that renew themselves, and the web dashboard sits behind single sign-on, all with exactly **one** inbound port open to the internet.
+This is the story of standing up a production-ish [Temporal](https://temporal.io) cluster on a single EC2 box — where the workers authenticate over mutual TLS with certificates that renew themselves and the web dashboard sits behind single sign-on, all with exactly **one** inbound port open to the internet.
 
 It's also a story about the wrong turns, because the wrong turns are where the actual learning is. If you're setting up something similar, the dead-ends below will save you an afternoon.
 
@@ -24,9 +24,9 @@ The workers being able to live *anywhere*, mesh or not, turned out to be the con
 
 ## Understanding what "Temporal server" actually is
 
-Before any of this made sense, I had to fix a mental model. I thought "server," "frontend," and "Postgres" were three separate components. They're not.
+Before any of this made sense, I had to fix a mental model. I thought "server," "frontend" and "Postgres" were three separate components. They're not.
 
-The **Temporal Server** is a single program containing four internal roles: Frontend, History, Matching, and an internal Worker. Of those, **only the Frontend is reachable from outside** — it's the gRPC API on port `7233`. The other three are internal plumbing.
+The **Temporal Server** is a single program containing four internal roles: Frontend, History, Matching and an internal Worker. Of those, **only the Frontend is reachable from outside** — it's the gRPC API on port `7233`. The other three are internal plumbing.
 
 And crucially: **"Frontend" does not mean the web UI.** That naming collision trips everyone up. In Temporal-speak, the Frontend is the API door. The dashboard you look at in a browser is a *separate* program (the **Web UI**, port `8080`) that is itself just another client of the Frontend.
 
@@ -58,9 +58,9 @@ That left two real options for worker → Frontend:
 - **Tailscale:** workers join the mesh, connect in plaintext, encryption and access control handled by WireGuard. Simplest — *for me*. But it costs the worker operator more: they have to install a daemon and become a node on my private network.
 - **mTLS:** hand each worker a certificate. Works from anywhere on the internet, no network entanglement. Costs *me* more: I run a small certificate authority.
 
-I chose **mTLS for all workers**, and the reasoning is the useful part: *a cert is just a file; network membership is a relationship.* For third parties running workers, a cert is the more professional, decoupled interface. And one uniform path beats maintaining "mesh workers here, cert workers there."
+I chose **mTLS for all workers** and the reasoning is the useful part: *a cert is just a file; network membership is a relationship.* For third parties running workers, a cert is the more professional, decoupled interface. And one uniform path beats maintaining "mesh workers here, cert workers there."
 
-The honest catch: mTLS doesn't remove overhead, it moves it to you. You're now responsible for issuing certs, **rotating them before they expire** (the 2am outage waiting to happen), and exposing the Frontend port (mTLS-gated, but reachable). The rotation problem is the one that bites — which is why the CA choice mattered.
+The honest catch: mTLS doesn't remove overhead, it moves it to you. You're now responsible for issuing certs, **rotating them before they expire** (the 2am outage waiting to happen) and exposing the Frontend port (mTLS-gated, but reachable). The rotation problem is the one that bites — which is why the CA choice mattered.
 
 ### mTLS in one paragraph
 
@@ -68,20 +68,20 @@ Normal TLS: the server proves its identity (the padlock). Mutual TLS: *both* sid
 
 ## Infisical as the certificate authority
 
-Rather than hand-rolling a CA with `openssl` (fine to learn once, miserable to operate), I used [Infisical](https://infisical.com), which has a full private-PKI product: private CA hierarchies, lifecycle management, and — the important bit — **automated renewal with expiry alerts**. It's open-source and has a free cloud tier.
+Rather than hand-rolling a CA with `openssl` (fine to learn once, miserable to operate), I used [Infisical](https://infisical.com), which has a full private-PKI product: private CA hierarchies, lifecycle management and — the important bit — **automated renewal with expiry alerts**. It's open-source and has a free cloud tier.
 
-The setup order in Infisical's Certificate Manager is layered, and the UI does not make this obvious:
+The setup order in Infisical's Certificate Manager is layered and the UI does not make this obvious:
 
 1. **Certificate Authority** — the thing that signs. (I created a single Root CA; for a small deployment you don't need the textbook root + intermediate split, especially since Infisical holds the keys either way.)
 2. **Certificate Policy** — the rules (I left it permissive).
 3. **Certificate Profile** — bundles a CA + policy into a reusable template.
 4. **Application** — a workload that issues certs through a profile.
 
-The gotcha: an "Application" is *not* a CA, and it's the *last* step, not the first. I created one first (out of order) and left it empty until the end.
+The gotcha: an "Application" is *not* a CA and it's the *last* step, not the first. I created one first (out of order) and left it empty until the end.
 
 ### The one profile trick
 
-A certificate can carry `serverAuth`, `clientAuth`, or both. Instead of two profiles, I made **one mTLS profile with both** extended key usages. That single template issues my server cert *and* my worker certs — they differ only by the name on them.
+A certificate can carry `serverAuth`, `clientAuth` or both. Instead of two profiles, I made **one mTLS profile with both** extended key usages. That single template issues my server cert *and* my worker certs — they differ only by the name on them.
 
 ### The SAN gotcha
 
@@ -96,13 +96,13 @@ Get this wrong and you get `x509: certificate is valid for X, not Y`.
 
 ## Dead end #2 (avoided): native mTLS in the all-in-one image
 
-Temporal's `auto-setup` Docker image *can* do mTLS via `TEMPORAL_TLS_*` environment variables. But turning on `requireClientAuth` means the image's **own internal health checks and namespace setup** also have to speak TLS, and getting that right is genuinely fiddly.
+Temporal's `auto-setup` Docker image *can* do mTLS via `TEMPORAL_TLS_*` environment variables. But turning on `requireClientAuth` means the image's **own internal health checks and namespace setup** also have to speak TLS and getting that right is genuinely fiddly.
 
 So I sidestepped it entirely with a cleaner architecture:
 
 > **Temporal runs plaintext, locked to the internal Docker network. A tiny nginx sits in front doing the mTLS.**
 
-nginx terminates the worker's mutual-TLS handshake using the Infisical certs, then forwards plain gRPC to Temporal over the private network. Workers get full mTLS; Temporal stays vanilla and boots cleanly; the local UI talks to it with zero cert config. The only publicly exposed thing is nginx on `7233`, and it rejects anyone without a valid client cert at the handshake.
+nginx terminates the worker's mutual-TLS handshake using the Infisical certs, then forwards plain gRPC to Temporal over the private network. Workers get full mTLS; Temporal stays vanilla and boots cleanly; the local UI talks to it with zero cert config. The only publicly exposed thing is nginx on `7233` and it rejects anyone without a valid client cert at the handshake.
 
 ### The stack
 
@@ -210,7 +210,7 @@ The configs above are clean in hindsight. Getting there involved a gauntlet:
 
 **The Cloudflare orange-cloud trap.** After adding the `temporal.kaplabs.dev` A record, `nc` timed out — and the resolved IP was `172.67.x.x`, a Cloudflare proxy address. The record was **proxied (orange cloud)**, so gRPC traffic was hitting Cloudflare's proxy, which doesn't handle it. Fix: flip it to **grey cloud (DNS only)** so it resolves to the real EC2 IP. (Note the contrast with the UI later, which *should* be orange.)
 
-**The OOM freeze.** First `docker compose up` on a 1 GB instance exhausted memory, thrashed, and froze the entire OS — which took Tailscale SSH down with it. The box looked dead but wasn't; a Stop/Start from the EC2 console recovered it. **This stack wants at least 2 GB** (`t3.small` floor, `t3.medium` comfortable). A stop/start also changes the public IP unless you attach an Elastic IP — worth doing to avoid re-chasing DNS.
+**The OOM freeze.** First `docker compose up` on a 1 GB instance exhausted memory, thrashed and froze the entire OS — which took Tailscale SSH down with it. The box looked dead but wasn't; a Stop/Start from the EC2 console recovered it. **This stack wants at least 2 GB** (`t3.small` floor, `t3.medium` comfortable). A stop/start also changes the public IP unless you attach an Elastic IP — worth doing to avoid re-chasing DNS.
 
 **The scary-but-harmless errors.** During startup, the logs spat `context deadline exceeded` and `shard status unknown`. These *look* like failures but are startup churn — Temporal acquiring its 512 shards while Postgres warms up. If they taper off within a couple minutes, ignore them. If they never stop, the box is still starved.
 
@@ -230,11 +230,11 @@ AWS security group **inbound rules**:
 |---|---|---|---|
 | Custom TCP | 7233 | 0.0.0.0/0 | Workers (mTLS-gated) |
 
-That's the entire inbound surface. `0.0.0.0/0` is acceptable *because of mTLS* — an open port just means "anyone can attempt a handshake and fail." No SSH rule (Tailscale SSH is outbound), no 8080 rule (the UI goes out through a tunnel), no 5432 (Postgres is internal). Keep **outbound** allow-all, since Tailscale, cloudflared, and image pulls all dial out.
+That's the entire inbound surface. `0.0.0.0/0` is acceptable *because of mTLS* — an open port just means "anyone can attempt a handshake and fail." No SSH rule (Tailscale SSH is outbound), no 8080 rule (the UI goes out through a tunnel), no 5432 (Postgres is internal). Keep **outbound** allow-all, since Tailscale, cloudflared and image pulls all dial out.
 
 ## Auto-renewal: the Infisical agent
 
-The whole reason for choosing Infisical. A small daemon runs on the VM, watches the server cert, and ~30 days before the 90-day cert expires, reissues a fresh one, writes it to disk, and **gracefully reloads nginx** via a post-hook. You never touch a cert again.
+The whole reason for choosing Infisical. A small daemon runs on the VM, watches the server cert and ~30 days before the 90-day cert expires, reissues a fresh one, writes it to disk and **gracefully reloads nginx** via a post-hook. You never touch a cert again.
 
 Key design decision: the agent manages **only** `server.pem` and `server.key` (the rotating pieces). It leaves `ca.pem` alone, because the Root CA doesn't rotate (10-year validity) — which also sidesteps any chain-format guesswork.
 
@@ -277,7 +277,7 @@ Run it as a systemd service (`infisical cert-manager agent --config /etc/infisic
 
 For the dashboard, the tunnel finally earns its keep — because it's a browser/HTTP app, exactly what Access login is designed for.
 
-Modern Cloudflare steers you to **remotely-managed tunnels**: create the tunnel at `one.dash.cloudflare.com → Networks → Tunnels`, and run a single `cloudflared service install <token>` on the box. The connection is **outbound only** — which is why 8080 never needs a firewall rule.
+Modern Cloudflare steers you to **remotely-managed tunnels**: create the tunnel at `one.dash.cloudflare.com → Networks → Tunnels` and run a single `cloudflared service install <token>` on the box. The connection is **outbound only** — which is why 8080 never needs a firewall rule.
 
 Then:
 
@@ -312,7 +312,7 @@ The result:
 
 - **Learn what "Frontend" means in Temporal** before anything else. There's only one door to secure.
 - **Cloudflare Tunnel + Access is for browser apps, not gRPC APIs.** Don't fight the protocol.
-- **A cert is a file; network membership is a relationship.** For external workers, mTLS is the cleaner interface — but the cost is running a CA, and the cost of a CA is rotation. Automate it from day one.
+- **A cert is a file; network membership is a relationship.** For external workers, mTLS is the cleaner interface — but the cost is running a CA and the cost of a CA is rotation. Automate it from day one.
 - **Terminate mTLS in nginx**, keep Temporal vanilla. The all-in-one image + `requireClientAuth` is a headache you can skip.
 - **Grey-cloud gRPC records, orange-cloud browser records.** Same domain, opposite settings.
 - **Give it 2 GB.** 1 GB freezes the whole box on first boot.
